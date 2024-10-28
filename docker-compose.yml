@@ -1,0 +1,32 @@
+version: "3.8"
+services:
+  chromadb:
+    build:
+      context: .
+      dockerfile: chromadb.dockerfile
+    container_name: chromadb
+    ports:
+      - "61892:61892"
+    networks:
+      - app-network
+
+  fastapi:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fastapi
+    ports:
+      - "8000:8000" # Expose FastAPI on port 8000
+    environment:
+      CHROMADB_HOST: chromadb # Service name to use as hostname
+      CHROMADB_PORT: 61892
+    volumes:
+      - .:/app
+    depends_on:
+      - chromadb
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

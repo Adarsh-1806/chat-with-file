@@ -6,6 +6,10 @@ import os
 if not os.path.exists("uploads"):
     os.makedirs("uploads")
 
+# Sidebar for settings
+st.sidebar.title("Settings")
+st.sidebar.write("No OpenAI API key needed anymore! Using free embeddings.")
+
 # Streamlit UI
 st.title("Chat with Your File")
 
@@ -29,6 +33,7 @@ if uploaded_file is not None:
     user_input = st.text_input("Ask something:")
     
     if user_input:
+        print(user_input)
         chat_response = requests.post("http://localhost:8000/chat", json={"query": user_input})
         if chat_response.status_code == 200:
             st.write("Response:", chat_response.json()['answer'])

@@ -1,21 +1,42 @@
-from fastapi import FastAPI, UploadFile, File
-from vector_store import VectorStore
-from langchain.embeddings import OpenAIEmbeddings
-from langchain.vectorstores import FAISS
+from fastapi import FastAPI, HTTPException, Depends
+from pydantic import BaseModel
+from typing import List
+import requests
+import os
+import chromadb 
 
 app = FastAPI()
 
-# Initialize VectorStore (FAISS)
-vector_store = VectorStore()
+CHROMADB_HOST = os.getenv("CHROMADB_HOST", "chromadb")
+CHROMADB_PORT = os.getenv("CHROMADB_PORT", "8000")
+CHROMADB_URL = f"http://{CHROMADB_HOST}:{CHROMADB_PORT}"
 
-@app.post("/upload")
-async def upload_file(file: UploadFile = File(...)):
-    content = await file.read()
-    vector_store.store_file(content, file.filename)
-    return {"status": "File processed successfully"}
+# Example client setup
+chroma_client = chromadb.AsyncHttpClient()
 
-@app.post("/chat")
-async def chat(query: dict):
-    user_query = query["query"]
-    response = vector_store.query(user_query)
-    return {"answer": response}
+class ChatMessage(BaseModel):
+    message: str
+
+class ChatResponse(BaseModel):
+    responses: List[str]
+
+@app.post("/chat", response_model=ChatResponse)
+async def chat_interaction(chat: ChatMessage):
+    try:
+        # Convert message to vector (assuming you have some embedding function)
+        embedding = get_embedding(chat.message)
+
+        # Store the embedding
+        chroma_client.add(embedding=embedding, text=chat.message)
+
+        # Query similar responses
+        results = chroma_client.query(embedding=embedding, top_k=5)
+        responses = [result.text for result in results]
+
+        return ChatResponse(responses=responses)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+def get_embedding(text: str):
+    # Placeholder function to get embeddings; replace with real embedding logic
+    return [0.0] * 128  # Mock embedding
